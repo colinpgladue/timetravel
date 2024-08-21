@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Footmill</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background: linear-gradient(to bottom left, #2b2b2b, #3c3c3c);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        div#intro {
+            font-size: 2em;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            line-height: 1.5em;
+            margin-bottom: 20px;
+        }
+        #counter, #progress {
+            position: absolute;
+            font-size: 2em;
+        }
+        #counter {
+            top: 20px;
+            right: 20px;
+        }
+        #progress {
+            top: 20px;
+            left: 20px;
+        }
+        .button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+        #gameScreen {
+            display: none;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+        }
+
+        #container {
+            flex-direction: column;
+            height: 100vh; /* Full height of the viewport */
+            width: 100%;
+        }
+
+        .top {
+            height: 3%;
+            border-bottom: 4px solid black;
+            width: 100%;
+        }
+
+        .middle {
+            height: 48.5%;
+            width: 100%;
+        }
+
+
+        .bottom {
+            height: 48.5%;
+            width: 100%;
+        }
+
+        .wktext {
+            position: absolute;
+            top: 51.5%; /* Adjust this value to set the desired n% from the top */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999; /* Ensure this value is higher than any other z-index on the page */
+            pointer-events: none; /* This makes sure it does not capture any mouse events */
+            font-size: 24px; /* Adjust the font size as needed */
+            color: black; /* Adjust the color as needed */
+        }
+
+        #gameOver {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+        }
+
+        #millWin {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+        }
+
+        #billWin {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            width: 100%;
+        }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/countup.js/2.8.0/countUp.umd.js" integrity="sha512-ABdY/XvDDH+5fzlCDOk/NEmasevb1A/b13MhOQuVId6ajXR0v81M2IHbC5TDSWWi8FtlQQTqhqaVBJMCCGR/5w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+    <div id="intro">
+        You wake up.<br>
+        You grab your phone to shut off the alarm and find that the date is September 7th, 2023.<br>
+        You get up, check your pocket, and find $1000.<br>
+        You open the blinds.<br>
+        You are 30 stories above the Vegas Strip.<br>
+        Can you gamble your way up to a million dollars?<br>
+        <br>
+        <button class="button" onclick="startGame()">Begin</button>
+    </div>
+
+    <div id="container" class="hidden">
+        <div class="top">
+            <span id="counter">$1,000</span>
+            <span id="progress">0/10</span>
+        </div>
+        <button class="middle" onclick="midClick()"></button>
+        <div class="wktext"></div>
+        <button class="bottom" onclick="botClick()"></button>
+    </div>
+
+    <div id="gameOver" class="hidden">
+        <h1>Game Over</h1>
+        <p id="lostMoney"> You lost $</p>
+    </div>
+
+    <div id="millWin" class="hidden">
+        <h1>You won!</h1>
+        <p>You've made a million dollars!!!</p>
+        <button class="button" onclick="continueClick()">Would you like to continue?</button>
+    </div>
+
+    <div id="billWin" class="hidden">
+        <h1>You won!</h1>
+        <p>You've made a BILLION dollars!!!</p>
+        <p>It's time to go home.</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+    <script>
+        var teamLogos = {
+            "Carolina Panthers": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/CAR",
+            "San Francisco 49ers": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/SF",
+            "Washington Commanders": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/WAS",
+            "Dallas Cowboys": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/DAL",
+            "Miami Dolphins": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/MIA",
+            "Denver Broncos": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/DEN",
+            "Philadelphia Eagles": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/PHI",
+            "New England Patriots": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/NE",
+            "Chicago Bears": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/CHI",
+            "Cleveland Browns": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/CLE",
+            "Cincinnati Bengals": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/CIN",
+            "Buffalo Bills": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/BUF",
+            "Tampa Bay Buccaneers": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/TB",
+            "Arizona Cardinals": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/ARI",
+            "Los Angeles Chargers": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/LAC",
+            "Kansas City Chiefs": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/KC",
+            "Indianapolis Colts": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/IND",
+            "Atlanta Falcons": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/ATL",
+            "New York Giants": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/NYG",
+            "Jacksonville Jaguars": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/JAX",
+            "New York Jets": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/NYJ",
+            "Detroit Lions": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/DET",
+            "Green Bay Packers": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/GB",
+            "Las Vegas Raiders": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/LV",
+            "Los Angeles Rams": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/LAR",
+            "Baltimore Ravens": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/BAL",
+            "New Orleans Saints": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/NO",
+            "Seattle Seahawks": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/SEA",
+            "Pittsburgh Steelers": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/PIT",
+            "Houston Texans": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/HOU",
+            "Tennessee Titans": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/TEN",
+            "Minnesota Vikings": "https://static.www.nfl.com/t_headshot_desktop_2x/f_auto/league/api/clubs/logos/MIN"
+        };
+        var teamMap = {
+            "Carolina Panthers": 1,
+            "San Francisco 49ers": 2,
+            "Washington Commanders": 3,
+            "Dallas Cowboys": 4,
+            "Miami Dolphins": 5,
+            "Denver Broncos": 6,
+            "Philadelphia Eagles": 7,
+            "New England Patriots": 8,
+            "Chicago Bears": 9,
+            "Cleveland Browns": 10,
+            "Cincinnati Bengals": 11,
+            "Buffalo Bills": 12,
+            "Tampa Bay Buccaneers": 13,
+            "Arizona Cardinals": 14,
+            "Los Angeles Chargers": 15,
+            "Kansas City Chiefs": 16,
+            "Indianapolis Colts": 17,
+            "Atlanta Falcons": 18,
+            "New York Giants": 19,
+            "Jacksonville Jaguars": 20,
+            "New York Jets": 21,
+            "Detroit Lions": 22,
+            "Green Bay Packers": 23,
+            "Las Vegas Raiders": 24,
+            "Los Angeles Rams": 25,
+            "Baltimore Ravens": 26,
+            "New Orleans Saints": 27,
+            "Seattle Seahawks": 28,
+            "Pittsburgh Steelers": 29,
+            "Houston Texans": 30,
+            "Tennessee Titans": 31,
+            "Minnesota Vikings": 32
+        };
+        var mapTeam = {
+            1: "Carolina Panthers",
+            2: "San Francisco 49ers",
+            3: "Washington Commanders",
+            4: "Dallas Cowboys",
+            5: "Miami Dolphins",
+            6: "Denver Broncos",
+            7: "Philadelphia Eagles",
+            8: "New England Patriots",
+            9: "Chicago Bears",
+            10: "Cleveland Browns",
+            11: "Cincinnati Bengals",
+            12: "Buffalo Bills",
+            13: "Tampa Bay Buccaneers",
+            14: "Arizona Cardinals",
+            15: "Los Angeles Chargers",
+            16: "Kansas City Chiefs",
+            17: "Indianapolis Colts",
+            18: "Atlanta Falcons",
+            19: "New York Giants",
+            20: "Jacksonville Jaguars",
+            21: "New York Jets",
+            22: "Detroit Lions",
+            23: "Green Bay Packers",
+            24: "Las Vegas Raiders",
+            25: "Los Angeles Rams",
+            26: "Baltimore Ravens",
+            27: "New Orleans Saints",
+            28: "Seattle Seahawks",
+            29: "Pittsburgh Steelers",
+            30: "Houston Texans",
+            31: "Tennessee Titans",
+            32: "Minnesota Vikings"
+        };
+
+        var begin = false;
+        var progressCount = 0;
+        var dollars = 1000;
+        var stringList = ["110011111101100011100101101000101111111000011010011110001001110101110101011110110001011111100111000001001000101100111001001111011111101011110000111010111001111011111010111001001011111011101100011101001111101110000111101000011110001001110100111011101000110010001100001111000000111001010"];
+        var midTeams = [[16, 2, 26, 12, 22, 2, 26, 13, 12, 22, 4, 16, 30, 5, 14, 1, 11, 22, 23, 17, 15, 24, 8, 27, 19, 2, 31, 3, 26, 32, 6, 28, 16, 26, 12, 9, 30, 17, 20, 19, 7, 13, 3, 4, 10, 2, 7, 16, 6, 9, 5, 13, 18, 1, 30, 32, 21, 31, 15, 29, 25, 28, 20, 12, 14, 25, 1, 10, 23, 5, 8, 27, 31, 22, 17, 11, 24, 5, 19, 4, 16, 15, 24, 2, 18, 26, 9, 11, 10, 27, 21, 29, 20, 23, 25, 30, 7, 8, 27, 21, 29, 13, 31, 3, 4, 32, 15, 24, 7, 14, 6, 18, 11, 30, 17, 19, 31, 21, 28, 4, 22, 16, 6, 12, 25, 2, 1, 10, 22, 23, 30, 20, 5, 3, 26, 12, 24, 4, 28, 14, 15, 26, 11, 20, 32, 29, 13, 8, 9, 21, 11, 24, 7, 1, 18, 26, 10, 23, 30, 8, 27, 16, 29, 22, 15, 14, 6, 2, 28, 1, 4, 23, 17, 5, 19, 29, 31, 3, 12, 32, 7, 6, 16, 25, 28, 26, 9, 17, 8, 19, 13, 27, 15, 12, 25, 21, 13, 24, 18, 9, 11, 10, 30, 20, 5, 31, 16, 24, 2, 6, 32, 14, 25, 18, 22, 17, 5, 8, 29, 12, 3, 19, 21, 4, 2, 15, 12, 1, 9, 10, 30, 17, 27, 7, 31, 20, 23, 11, 13, 24, 14, 16, 28, 26, 10, 22, 23, 20, 5, 32, 21, 3, 2, 29, 1, 8, 4, 6, 14, 25, 18, 12, 11, 22, 30, 20, 13, 31, 7, 21, 19, 9, 6, 15, 8, 28, 18, 26, 10, 17, 32, 27, 29, 3, 16]]
+        var botTeams = [[2, 22, 16, 16, 13, 23, 30, 7, 29, 25, 23, 5, 10, 12, 28, 13, 10, 32, 9, 30, 16, 6, 21, 18, 7, 25, 20, 4, 29, 23, 15, 29, 11, 5, 8, 18, 31, 24, 1, 25, 14, 27, 2, 22, 21, 26, 19, 24, 8, 14, 4, 20, 17, 23, 10, 22, 3, 28, 12, 11, 27, 7, 26, 4, 2, 3, 18, 9, 13, 21, 16, 19, 30, 6, 29, 32, 15, 31, 23, 7, 12, 6, 32, 28, 13, 25, 22, 17, 20, 1, 30, 8, 11, 16, 10, 6, 2, 15, 22, 18, 14, 1, 17, 5, 28, 9, 26, 16, 12, 25, 10, 27, 29, 20, 13, 8, 1, 5, 2, 3, 23, 7, 32, 21, 28, 13, 4, 29, 9, 15, 14, 31, 24, 19, 11, 6, 21, 19, 3, 18, 22, 10, 30, 2, 27, 23, 31, 17, 1, 15, 12, 19, 4, 17, 32, 28, 14, 25, 13, 3, 9, 5, 31, 24, 9, 26, 16, 11, 10, 30, 25, 32, 27, 8, 21, 20, 18, 7, 13, 2, 5, 23, 15, 29, 14, 22, 24, 10, 12, 3, 18, 20, 4, 19, 14, 7, 22, 8, 3, 32, 28, 2, 27, 17, 1, 26, 6, 23, 4, 21, 16, 11, 7, 30, 1, 31, 19, 27, 26, 20, 9, 28, 16, 8, 14, 24, 5, 32, 6, 26, 29, 25, 13, 3, 11, 18, 22, 25, 7, 29, 4, 9, 1, 17, 31, 18, 27, 30, 6, 15, 8, 12, 19, 10, 27, 5, 21, 3, 19, 2, 23, 24, 26, 28, 17, 16, 9, 15, 32, 12, 4, 23, 24, 5, 7, 25, 1, 30, 11, 20, 13, 31, 2, 14, 22]]
+        var lookup = {
+            1: 'Week 1',
+            2: 'Week 2',
+            3: 'Week 3',
+            4: 'Week 4',
+            5: 'Week 5',
+            6: 'Week 6',
+            7: 'Week 7',
+            8: 'Week 8',
+            9: 'Week 9',
+            10: 'Week 10',
+            11: 'Week 11',
+            12: 'Week 12',
+            13: 'Week 13',
+            14: 'Week 14',
+            15: 'Week 15',
+            16: 'Week 16',
+            17: 'Week 17',
+            18: 'Week 18',
+            19: 'Wild Card',
+            20: 'Divisional',
+            21: 'Conference',
+            22: 'Super Bowl'
+        };
+        var weeks = [22, 21, 21, 20, 20, 20, 20, 19, 19, 19, 19, 19, 19, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+
+
+        /// Don't forget week number *check*
+            /// maybe later add some mapping to save characters
+        /// AND a victory page *check*
+            /// Option to keep climbing to a billion *check*
+                /// Add a success page there and end it  *check*
+        /// Put it up on github and have it hosted to play on any phone
+        /// And make it fit on more than just the iphone 14 pro max
+        /// Add somnething to the game over page that tells you how far you got. Instead of you lost all your money say you lost XX Dollars *check*
+
+        var localDate = new Date();
+        var timeZoneOffset = localDate.getTimezoneOffset() * 60 * 1000;
+        var localTimeInMillis = localDate.getTime() - timeZoneOffset;
+        var todaysDateInIntegerDaysSinceEpoch = Math.floor(localTimeInMillis / (1000 * 60 * 60 * 24));
+
+        tenRandomNumbersBetween0andLengthOfStringList = [];
+        Math.seedrandom(todaysDateInIntegerDaysSinceEpoch);
+        for (i = 0; i < 20; i++) { /// 20 is enough doubles for a billion. 10 is a million.
+            tenRandomNumbersBetween0andLengthOfStringList.push(Math.floor(Math.random() * stringList[0].length));
+        }
+
+        console.log(tenRandomNumbersBetween0andLengthOfStringList);
+
+        var bins = stringList[0];
+        var mids = midTeams[0];
+        var bots = botTeams[0];
+
+        console.log(tenRandomNumbersBetween0andLengthOfStringList[progressCount]);
+        console.log(bins[tenRandomNumbersBetween0andLengthOfStringList[progressCount]]);
+
+        var bin = bins[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+        var mid = mids[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+        var bot = bots[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+        var week = weeks[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+
+        function startGame() {
+            document.getElementById('intro').style.display = 'none';
+            document.getElementById('container').style.display = 'flex';
+            begin = true;
+            document.getElementsByClassName('middle')[0].innerHTML = "<img src='" + teamLogos[mapTeam[mid]] + "' />";
+            document.getElementsByClassName('bottom')[0].innerHTML = "<img src='" + teamLogos[mapTeam[bot]] + "' />";
+            document.getElementsByClassName('wktext')[0].innerText = lookup[week];
+        }
+
+        function continueClick() {
+            document.getElementById('millWin').style.display = 'none';
+            document.getElementById('container').style.display = 'flex';
+        }
+
+        function goToNextPage() {
+            var mid = mids[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+            var bot = bots[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+            var week = weeks[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+
+            console.log(281)
+
+            document.getElementsByClassName('middle')[0].innerHTML = "<img src='" + teamLogos[mapTeam[mid]] + "' />";
+            document.getElementsByClassName('bottom')[0].innerHTML = "<img src='" + teamLogos[mapTeam[bot]] + "' />";
+            document.getElementsByClassName('wktext')[0].innerText = lookup[week];
+        }
+
+        function midClick() {
+            bin = bins[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+            if (bin == "1") {
+                // Continue as normal
+                if (progressCount == 9) {
+                    document.getElementById('container').style.display = 'none';
+                    document.getElementById('millWin').style.display = 'flex';
+                }
+                if (progressCount == 19) {
+                    document.getElementById('container').style.display = 'none';
+                    document.getElementById('billWin').style.display = 'flex';
+                }
+            } else {
+                // Game Over
+                document.getElementById('container').style.display = 'none';
+                document.getElementById('gameOver').style.display = 'flex';
+                document.getElementById("lostMoney").textContent = document.getElementById("lostMoney").textContent + dollars;
+            }
+
+            progressCount++;
+
+            const progressAnim = new countUp.CountUp('progress', progressCount, {
+                startVal: progressCount-1, // Start value
+                decimalPlaces: 0, // Adjust as needed for your currency format
+                duration: 1, // Animation duration in seconds
+                separator: ',', // Thousands separator
+                suffix: '/10' // Currency prefix
+            });
+
+            if (!progressAnim.error) {
+                progressAnim.start();
+            } else {
+                console.error(progressAnim.error);
+            }
+
+            let oldDollars = dollars; // Capture the current value before it's updated
+            dollars *= 2; // Update 'dollars' to its new value
+
+            const dollarAnim = new countUp.CountUp('counter', dollars, {
+                startVal: oldDollars, // Start value
+                decimalPlaces: 0, // Adjust as needed for your currency format
+                duration: 2, // Animation duration in seconds
+                separator: ',', // Thousands separator
+                prefix: '$' // Currency prefix
+            });
+
+            if (!dollarAnim.error) {
+                dollarAnim.start();
+            } else {
+                console.error(dollarAnim.error);
+            }
+
+            if (progressCount >= 10) {
+                // Optional: Actions when progress reaches 10
+            }
+
+            goToNextPage();
+        }
+
+        function botClick() {
+            bin = bins[tenRandomNumbersBetween0andLengthOfStringList[progressCount]];
+            if (bin == "0") {
+                // Continue as normal
+                if (progressCount == 9) {
+                    document.getElementById('container').style.display = 'none';
+                    document.getElementById('millWin').style.display = 'flex';
+                }
+                if (progressCount == 19) {
+                    document.getElementById('container').style.display = 'none';
+                    document.getElementById('billWin').style.display = 'flex';
+                }
+            } else {
+                // Game Over
+                document.getElementById('container').style.display = 'none';
+                document.getElementById('gameOver').style.display = 'flex';
+                document.getElementById("lostMoney").textContent = document.getElementById("lostMoney").textContent + dollars;
+            }
+
+            progressCount++;
+
+            const progressAnim = new countUp.CountUp('progress', progressCount, {
+                startVal: progressCount-1, // Start value
+                decimalPlaces: 0, // Adjust as needed for your currency format
+                duration: 1, // Animation duration in seconds
+                separator: ',', // Thousands separator
+                suffix: '/10' // Currency prefix
+            });
+
+            if (!progressAnim.error) {
+                progressAnim.start();
+            } else {
+                console.error(progressAnim.error);
+            }
+
+            let oldDollars = dollars; // Capture the current value before it's updated
+            dollars *= 2; // Update 'dollars' to its new value
+
+            const dollarAnim = new countUp.CountUp('counter', dollars, {
+                startVal: oldDollars, // Start value
+                decimalPlaces: 0, // Adjust as needed for your currency format
+                duration: 2, // Animation duration in seconds
+                separator: ',', // Thousands separator
+                prefix: '$' // Currency prefix
+            });
+
+            if (!dollarAnim.error) {
+                dollarAnim.start();
+            } else {
+                console.error(dollarAnim.error);
+            }
+
+            if (progressCount >= 10) {
+                // Optional: Actions when progress reaches 10
+            }
+
+            goToNextPage();
+        }
+
+    </script>
+</body>
+</html>
